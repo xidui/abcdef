@@ -13,7 +13,7 @@ for day in range(8, 22):
             districts.append(_hash)
 
     for _hash in districts:
-        t = table[[_hash == tmp for tmp in table.start_district_hash]]
+        t = table[[_hash == tmp for tmp in table.start_district_hash]].reset_index()
         x_axis = t.time_id
         y_axis = t.Order_cnt
         p1 = pylab.plot(x_axis, y_axis, 'g', label='Order_cnt')

@@ -1,0 +1,8 @@
+# Created by .ignore support plugin (hsz.mobi)
+*.jpg
+*.csv
+processed_data
+training_data
+test_set_1
+plot
+.idea
