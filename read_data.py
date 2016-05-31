@@ -43,11 +43,15 @@ def get_key_table():
 
 	mother_table=b.drop_duplicates()
 	mother_table['commen_key']=1
-	son_table=pd.DataFrame(range(22,31),columns=['Day'])
-	son_table['Weekday']=[4,5,6,7,1,2,3,4,5]
-	son_table['Workday']=[1,0,0,1,1,1,1,1,0]
-	son_table['Yesterday_Workday']=[1,1,0,0,1,1,1,1,1]
-	son_table['Twoday_ago_Workday']=[1,1,1,0,0,1,1,1,1]
+	son_table=pd.DataFrame(range(1, 22),columns=['Day'])
+	son_table['Weekday']=[4,5,6,7,1,2,3,4,5,6,7,1,2,3,4,5,6,7,1,2,3]
+	#son_table['Weekday']=[4,5,6,7,1,2,3,4,5]
+	son_table['Workday']=[1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1]
+	#son_table['Workday']=[1,0,0,1,1,1,1,1,0]
+	son_table['Yesterday_Workday']=[1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1]
+	#son_table['Yesterday_Workday']=[1,1,0,0,1,1,1,1,1]
+	son_table['Twoday_ago_Workday']=[1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1]
+	#son_table['Twoday_ago_Workday']=[1,1,1,0,0,1,1,1,1]
 	son_table['commen_key']=1
 	mother_table=pd.merge(mother_table,son_table,how='left')
 
@@ -120,7 +124,7 @@ else:
 
 # now get attribute for day 8 , only use data in day 1-8
 
-for processing_day in [30]:
+for processing_day in [22, 24, 26, 28, 30]:
 	mother_table=key_table[key_table.Day==processing_day]
 	mother_table=mother_table[[i in range(43,145) for i in mother_table.time_id]]
 	a=pd.DataFrame(columns=['order_id','driver_id','passenger_id',
@@ -141,11 +145,12 @@ for processing_day in [30]:
 	a = pd.read_table(action_file,header=None)
 	a = pd.DataFrame(a.get_values(),columns=['order_id','driver_id','passenger_id',
 	'start_district_hash','dest_district_hash','Price','Time'])
-	a=order_data_processing(a)
+	a = order_data_processing(a)
 
 
 	#Important !!!  target value Order_Supply_Gap
-	#mother_table=Order_Supply_Gap_attribute(a,mother_table,['start_district_hash','Day','time_id'],'')
+	if processing_day in range(8, 22):
+		mother_table=Order_Supply_Gap_attribute(a,mother_table,['start_district_hash','Day','time_id'],'')
 
 
 	#attributes in 30 minute today
