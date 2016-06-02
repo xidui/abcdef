@@ -44,8 +44,8 @@ def get_key_table():
 	mother_table=b.drop_duplicates()
 	mother_table['commen_key']=1
 	son_table=pd.DataFrame(range(22, 31),columns=['Day'])
-	#son_table['Weekday']=[4,5,6,7,1,2,3,4,5,6,7,1,2,3,4,5,6,7,1,2,3]
-	son_table['Weekday']=[4,5,6,7,1,2,3,4,5]
+	#son_table['Weekday']=[4,5,6,0,1,2,3,4,5,6,0,1,2,3,4,5,6,0,1,2,3]
+	son_table['Weekday']=[4,5,6,0,1,2,3,4,5]
 	#son_table['Workday']=[1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1]
 	son_table['Workday']=[1,0,0,1,1,1,1,1,0]
 	#son_table['Yesterday_Workday']=[1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1]
@@ -54,7 +54,18 @@ def get_key_table():
 	son_table['Twoday_ago_Workday']=[1,1,1,0,0,1,1,1,1]
 	son_table['commen_key']=1
 	mother_table=pd.merge(mother_table,son_table,how='left')
-
+    #cluster
+    mother_table['is_cluster_0'] = [i in [7, 48, 51] for i in mother_table.district_id]
+    mother_table['is_cluster_1'] = [i in [1, 12, 14, 20, 24, 27, 28, 37, 42, 46, 8, 23] for i in mother_table.district_id]
+    mother_table['is_cluster_2'] = [i in [2, 3, 4, 5, 6, 9, 10, 11, 13, 15, 16, 17, 18, 19, 21, 22, 25, 26, 29, 30, 31, 32, 33, 34, 35, 36, 38, 39, 40, 41, 43, 44, 45, 47, 49, 50, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66] for i in mother_table.district_id]
+    # rush-hour
+    mother_table['is_morning_rushhour'] = [i in range(46, 55) for i in mother_table.time_id]
+    mother_table['is_noon_rushhour'] = [i in range(102, 112) for i in mother_table.time_id]
+    mother_table['is_night_rushhour'] = [i in range(122, 135) for i in mother_table.time_id]
+    #weekends
+    mother_table['is_monday'] = [i==0 for i in mother_table.time_id]
+    mother_table['is_friday'] = [i==4 for i in mother_table.time_id]
+    
 	son_table=pd.DataFrame(range(1,145),columns=['time_id'])
 	son_table['commen_key']=1
 	mother_table=pd.merge(mother_table,son_table,how='left')
