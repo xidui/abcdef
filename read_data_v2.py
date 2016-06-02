@@ -43,10 +43,14 @@ def get_key_table():
 
 	mother_table=b.drop_duplicates()
 	mother_table['commen_key']=1
-	son_table=pd.DataFrame(range(22,31),columns=['Day'])
+	son_table=pd.DataFrame(range(22, 31),columns=['Day'])
+	#son_table['Weekday']=[4,5,6,7,1,2,3,4,5,6,7,1,2,3,4,5,6,7,1,2,3]
 	son_table['Weekday']=[4,5,6,7,1,2,3,4,5]
+	#son_table['Workday']=[1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1]
 	son_table['Workday']=[1,0,0,1,1,1,1,1,0]
+	#son_table['Yesterday_Workday']=[1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1]
 	son_table['Yesterday_Workday']=[1,1,0,0,1,1,1,1,1]
+	#son_table['Twoday_ago_Workday']=[1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1]
 	son_table['Twoday_ago_Workday']=[1,1,1,0,0,1,1,1,1]
 	son_table['commen_key']=1
 	mother_table=pd.merge(mother_table,son_table,how='left')
@@ -137,9 +141,9 @@ def order_data_processing(a):
 	return a
 
 def swap_start_dest(table):
-   table.rename(columns={'start_district_hash':'tmp'})
-   table.rename(columns={'dest_district_hash':'start_district_hash'})
-   table.rename(columns={'tmp':'dest_district_hash'})
+	table.rename(columns={'start_district_hash':'tmp'})
+   	table.rename(columns={'dest_district_hash':'start_district_hash'})
+   	table.rename(columns={'tmp':'dest_district_hash'})
  
 # primary key for each sample
 key_table_path=base_path + 'processed_data/test_test.csv'
@@ -150,10 +154,10 @@ else:
 
 # now get attribute for day 8 , only use data in day 1-8
 
-for processing_day in range(1,2):
+for processing_day in range(22, 31):
 	if processing_day in [23,25,27,29]:
 		continue
-	
+
 	mother_table=key_table[key_table.Day==processing_day]
 	mother_table=mother_table[[i in range(43,145) for i in mother_table.time_id]]
 	a=pd.DataFrame(columns=['order_id','driver_id','passenger_id',
