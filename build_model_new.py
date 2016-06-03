@@ -176,9 +176,6 @@ else:
     test_all.to_csv(path,index=False)
 
 
-
-
-
 #read result data day22-30
 path=base_path +"processed_data/train_data/result_combined.csv"
 if os.path.exists(path):
@@ -224,6 +221,9 @@ def GradientBoosting(x, y, x_test, loss='lad'):
 
 
 def out_put_result(model, x_result, output_file):
+    import os
+    if not os.path.exists('./result'):
+        os.makedirs('./result')
     y_result=model.predict(x_result)
     y_result=[max(i+1,1) for i in y_result]
     #y_result=[max(i-3,1) for i in y_result]
@@ -245,7 +245,7 @@ if __name__ == '__main__':
     settings = {
         'cluster': [0, 1, 2],
         'workday': [0, 1],
-        'loss': ['pad'],
+        'loss': ['ls', 'lad', 'huber', 'quantile'],
     }
     # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -289,9 +289,9 @@ if __name__ == '__main__':
 
             #Random Forest
             clf_predict, clf = RandomForest(x, y, x_test)
-            clf_predict.fillna(1)
-            try_modify_result(clf_predict, y_test, "Random Forest")
-            out_put_result(clf, x_result)
+            # clf_predict.fillna(1)
+            try_modify_result(clf_predict, y_test, model_name)
+            out_put_result(clf, x_result, output_file)
 
     #weight = [40/math.log10(i+10) for i in y]
     model_name = "GradientBoosting"
@@ -318,8 +318,8 @@ if __name__ == '__main__':
                 x_final = x_result.reset_index(drop=True)
 
                 clf_predict, clf = GradientBoosting(x, y, x_test, loss=loss)
-                try_modify_result(clf_predict,y_test,"Gradient Boosting")
-                out_put_result(clf, x_result)
+                try_modify_result(clf_predict, y_test, model_name)
+                out_put_result(clf, x_result, output_file)
 
 
     # #Linear
