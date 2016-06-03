@@ -21,40 +21,49 @@ base_path = './'
 
 
 def try_modify_result(y_predict,y_test,model_name):
+    MAPE_MIN = 99999
     diff = clf_predict - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE: " + str(MAPE)
 
     lower = [max(i - 0.5, 1) for i in clf_predict]
     diff = lower - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE -0.5: " + str(MAPE)
 
     lower = [max(i - 1, 1) for i in clf_predict]
     diff = lower - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE -1: " + str(MAPE)
 
     lower = [max(i - 2, 1) for i in clf_predict]
     diff = lower - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE -2: " + str(MAPE)
 
     upper = [max(i - 3, 1) for i in clf_predict]
     diff = upper - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE -3: " + str(MAPE)
 
     upper = [max(i + 0.5, 1) for i in clf_predict]
     diff = upper - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE +0.5: " + str(MAPE)
 
     upper = [max(i + 1, 0) for i in clf_predict]
     diff = upper - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
+    MAPE_MIN = min(MAPE, MAPE_MIN)
     print model_name+" MAPE +1: " + str(MAPE)
 
+    return MAPE_MIN
 
 
 
@@ -220,7 +229,7 @@ def GradientBoosting(x, y, x_test, loss='lad'):
     return clf_predict, clf
 
 
-def out_put_result(model, x_result, output_file):
+def out_put_result(model, x_result, output_file, mape):
     import os
     if not os.path.exists('./result'):
         os.makedirs('./result')
@@ -235,7 +244,7 @@ def out_put_result(model, x_result, output_file):
     output.time_slot=get_timeslot(x_final.Day,x_final.time_id)
     output.prediction=y_result
     final_output=pd.merge(sample,output,on=['distinct_id','time_slot'],how='left')
-    final_output.to_csv(output_file,index=False,header=False)
+    final_output.to_csv(output_file + '.' + str(len(output)) + '.' + str(mape), index=False, header=False)
     print len(output)
     print len(final_output)
 
@@ -290,8 +299,8 @@ if __name__ == '__main__':
             #Random Forest
             clf_predict, clf = RandomForest(x, y, x_test)
             # clf_predict.fillna(1)
-            try_modify_result(clf_predict, y_test, model_name)
-            out_put_result(clf, x_result, output_file)
+            MAPE_MIN = try_modify_result(clf_predict, y_test, model_name)
+            out_put_result(clf, x_result, output_file, MAPE_MIN)
 
     #weight = [40/math.log10(i+10) for i in y]
     model_name = "GradientBoosting"
@@ -318,8 +327,8 @@ if __name__ == '__main__':
                 x_final = x_result.reset_index(drop=True)
 
                 clf_predict, clf = GradientBoosting(x, y, x_test, loss=loss)
-                try_modify_result(clf_predict, y_test, model_name)
-                out_put_result(clf, x_result, output_file)
+                MAPE_MIN = try_modify_result(clf_predict, y_test, model_name)
+                out_put_result(clf, x_result, output_file, MAPE_MIN)
 
 
     # #Linear
