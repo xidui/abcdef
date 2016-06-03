@@ -20,9 +20,6 @@ def get_timeslot(day,timeid):
 base_path = './'
 
 
-def out_put_result():
-    pass
-
 def try_modify_result(y_predict,y_test,model_name):
     diff = clf_predict - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
@@ -206,191 +203,207 @@ else:
 
 columns_to_drop = ['start_district_hash', 'In2hour_tj_level_1','In2hour_tj_level_2','In2hour_tj_level_3','In2hour_tj_level_4']
 
-# $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-settings=[2,1]
-# $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-clust = 'is_cluster_' + str(settings[0])
-train=train_all[train_all.Workday==settings[1]]
-train=train[train[clust]==1]
-test=test_all[test_all.Workday==settings[1]]
-test=test[test[clust]==1]
-predict=predict_all[predict_all.Workday==settings[1]]
-predict=predict[predict[clust]==1]
-output_file="./result/r_"+str(settings[0])+"_"+str(settings[1])+".csv"
+# Random Forest
+def RandomForest(x, y, x_test):
+    clf = ensemble.RandomForestClassifier(n_estimators=20,max_features=min(len(feasible_columns) - len(columns_to_drop), 20))
+    clf.fit(x,y)
+    clf_predict=clf.predict(x_test)
+    clf_score=clf.score(x_test, y_test)
+    return clf_predict, clf
 
 
-y=train.Gap_cnt.fillna(1)
-#y=[math.log(i+1,10) for i in y]
-y_test=test.Gap_cnt.fillna(0)
-#y_test=[math.log(i+1,10) for i in y_test]
-x=train[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
-x_test=test[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
-x_result=predict[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
-x_result=x_result.loc[[i in [46,58,70,82,94,106,118,130,142] for i in x_result.time_id],:]
-x_final=x_result.reset_index(drop=True)
-
-a=x.columns
-mapper=[]
-for j in a:
-    if j in ['district_id', 'Day', 'Weekday', 'Workday', 'Yesterday_Workday','Twoday_ago_Workday', 'time_id',
-    'Weather','weather_1','weather_2','weather_3','weather_4','weather_5','weather_6','weather_7','weather_8','weather_9']:
-        mapper.append((j,None))
-    else:
-        mapper.append((j,StandardScaler()))
-b=DataFrameMapper(mapper)
-b.fit(pd.concat([x, x_test, x_result]))
-x=b.transform(x)
-x_test=b.transform(x_test)
-x_result_before = x_result
-x_result=b.transform(x_result)
-
-#Random Forest
-clf = ensemble.RandomForestClassifier(n_estimators=20,max_features=min(len(feasible_columns) - len(columns_to_drop), 20))
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
+# Gradient Boosting
+def GradientBoosting(x, y, x_test, loss='lad'):
+    params = {'n_estimators': 40, 'max_depth': 8, 'min_samples_split': 20,
+              'learning_rate': 0.01, 'loss': loss}
+    clf = ensemble.GradientBoostingRegressor(**params)
+    clf.fit(x,y)
+    clf_predict=clf.predict(x_test)
+    clf_score=clf.score(x_test, y_test)
+    return clf_predict, clf
 
 
-clf_predict.fill(1)
-try_modify_result(clf_predict,y_test,"Random Forest")
-
-'''
-y_result=clf.predict(x_result)
-y_result=[max(i+1,1) for i in y_result]
-sample=pd.read_csv("sample result.csv",header=None )
-sample.columns=['distinct_id','time_slot','prediction']
-sample=sample.drop('prediction',axis=1)
-output=pd.DataFrame(columns=['distinct_id','time_slot','prediction'])
-output.distinct_id=x_final.district_id
-output.time_slot=get_timeslot(x_final.Day,x_final.time_id)
-output.prediction=y_result
-
-final_output=pd.merge(sample,output,on=['distinct_id','time_slot'],how='left')
-
-final_output.to_csv(output_file,index=False,header=False)
-print len(output)
-print len(final_output)
-
-'''
-#Gradient Boosting
-params = {'n_estimators': 40, 'max_depth': 8, 'min_samples_split': 20,
-          'learning_rate': 0.01, 'loss': 'lad'}
-clf = ensemble.GradientBoostingRegressor(**params)
-
-#weight = [40/math.log10(i+10) for i in y]
-
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
-try_modify_result(clf_predict,y_test,"Gradient Boosting")
-
-y_result=clf.predict(x_result)
-#y_result=[max(i-3,1) for i in y_result]
-
-sample=pd.read_csv("sample result.csv",header=None )
-sample.columns=['distinct_id','time_slot','prediction']
-sample=sample.drop('prediction',axis=1)
-output=pd.DataFrame(columns=['distinct_id','time_slot','prediction'])
-output.distinct_id=x_final.district_id
-output.time_slot=get_timeslot(x_final.Day,x_final.time_id)
-output.prediction=y_result
-
-final_output=pd.merge(sample,output,on=['distinct_id','time_slot'],how='left')
-
-final_output.to_csv(output_file,index=False)
-print len(output)
-print len(final_output)
+def out_put_result(model, x_result, output_file):
+    y_result=model.predict(x_result)
+    y_result=[max(i+1,1) for i in y_result]
+    #y_result=[max(i-3,1) for i in y_result]
+    sample=pd.read_csv("./result3.csv",header=None )
+    sample.columns=['distinct_id','time_slot','prediction']
+    sample=sample.drop('prediction',axis=1)
+    output=pd.DataFrame(columns=['distinct_id','time_slot','prediction'])
+    output.distinct_id=x_final.district_id
+    output.time_slot=get_timeslot(x_final.Day,x_final.time_id)
+    output.prediction=y_result
+    final_output=pd.merge(sample,output,on=['distinct_id','time_slot'],how='left')
+    final_output.to_csv(output_file,index=False,header=False)
+    print len(output)
+    print len(final_output)
 
 
-
-sel = SelectFromModel(clf, prefit=True)
-x=sel.transform(x)
-x_test=sel.transform(x_test)
-
-
-
-#Linear
-clf = linear_model.LinearRegression()
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
-
-diff=clf_predict-y_test
-MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
-print "Linear MAPE: "+str(MAPE)
+if __name__ == '__main__':
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    settings = {
+        'cluster': [0, 1, 2],
+        'workday': [0, 1],
+        'loss': ['pad'],
+    }
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 
-#Ridge
-clf = linear_model.Ridge (alpha = .5)
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
+    model_name = "RandomForest"
+    for cluster in settings['cluster']:
+        for workday in settings['workday']:
+            clust = 'is_cluster_' + str(cluster)
+            train = train_all[train_all.Workday == workday]
+            train = train[train[clust] == 1]
+            test = test_all[test_all.Workday == workday]
+            test = test[test[clust] == 1]
+            predict=predict_all[predict_all.Workday == workday]
+            predict=predict[predict[clust] == 1]
+            output_file="./result/{0}_{1}_{2}.csv".format(model_name, cluster, workday)
 
-diff=clf_predict-y_test
-MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
-print "Ridge MAPE: "+str(MAPE)
+            y = train.Gap_cnt.fillna(1)
+            #y=[math.log(i+1,10) for i in y]
+            y_test = test.Gap_cnt.fillna(0)
+            #y_test=[math.log(i+1,10) for i in y_test]
+            x = train[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+            x_test = test[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+            x_result = predict[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+            x_result = x_result.loc[[i in [46,58,70,82,94,106,118,130,142] for i in x_result.time_id],:]
+            x_final = x_result.reset_index(drop=True)
+
+            a=x.columns
+            mapper=[]
+            for j in a:
+                if j in ['district_id', 'Day', 'Weekday', 'Workday', 'Yesterday_Workday','Twoday_ago_Workday', 'time_id',
+                'Weather','weather_1','weather_2','weather_3','weather_4','weather_5','weather_6','weather_7','weather_8','weather_9']:
+                    mapper.append((j,None))
+                else:
+                    mapper.append((j,StandardScaler()))
+            b=DataFrameMapper(mapper)
+            b.fit(pd.concat([x, x_test, x_result]))
+            x=b.transform(x)
+            x_test=b.transform(x_test)
+            x_result_before = x_result
+            x_result=b.transform(x_result)
+
+            #Random Forest
+            clf_predict, clf = RandomForest(x, y, x_test)
+            clf_predict.fillna(1)
+            try_modify_result(clf_predict, y_test, "Random Forest")
+            out_put_result(clf, x_result)
+
+    #weight = [40/math.log10(i+10) for i in y]
+    model_name = "GradientBoosting"
+    for cluster in settings['cluster']:
+        for workday in settings['workday']:
+            for loss in settings['loss']:
+                clust = 'is_cluster_' + str(cluster)
+                train = train_all[train_all.Workday == workday]
+                train = train[train[clust] == 1]
+                test = test_all[test_all.Workday == workday]
+                test = test[test[clust] == 1]
+                predict=predict_all[predict_all.Workday == workday]
+                predict=predict[predict[clust] == 1]
+                output_file="./result/{0}_{1}_{2}_{3}.csv".format(model_name, cluster, workday, loss)
+
+                y = train.Gap_cnt.fillna(1)
+                #y=[math.log(i+1,10) for i in y]
+                y_test = test.Gap_cnt.fillna(0)
+                #y_test=[math.log(i+1,10) for i in y_test]
+                x = train[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+                x_test = test[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+                x_result = predict[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+                x_result = x_result.loc[[i in [46,58,70,82,94,106,118,130,142] for i in x_result.time_id],:]
+                x_final = x_result.reset_index(drop=True)
+
+                clf_predict, clf = GradientBoosting(x, y, x_test, loss=loss)
+                try_modify_result(clf_predict,y_test,"Gradient Boosting")
+                out_put_result(clf, x_result)
 
 
-#Lasso
-clf = linear_model.Lasso(alpha = 0.1)
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
-
-diff=clf_predict-y_test
-MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
-print "Lasso MAPE: "+str(MAPE)
-
-
-'''
-
-#LR L1
-clf = linear_model.LogisticRegression(penalty='l1', tol=0.01)
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
-
-diff=clf_predict-y_test
-MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
-print "LR L1 MAPE: "+str(MAPE)
-
-
-#LR L2
-clf = linear_model.LogisticRegression(penalty='l2', tol=0.1)
-clf.fit(x,y)
-clf_predict=clf.predict(x_test)
-clf_score=clf.score(x_test, y_test)
-
-diff=clf_predict-y_test
-MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
-print "LR L2 MAPE: "+str(MAPE)
+    # #Linear
+    # clf = linear_model.LinearRegression()
+    # clf.fit(x,y)
+    # clf_predict=clf.predict(x_test)
+    # clf_score=clf.score(x_test, y_test)
+    #
+    # diff=clf_predict-y_test
+    # MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
+    # print "Linear MAPE: "+str(MAPE)
+    #
+    #
+    # #Ridge
+    # clf = linear_model.Ridge (alpha=0.5)
+    # clf.fit(x,y)
+    # clf_predict=clf.predict(x_test)
+    # clf_score=clf.score(x_test, y_test)
+    #
+    # diff=clf_predict-y_test
+    # MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
+    # print "Ridge MAPE: "+str(MAPE)
+    #
+    #
+    # #Lasso
+    # clf = linear_model.Lasso(alpha=0.1)
+    # clf.fit(x,y)
+    # clf_predict=clf.predict(x_test)
+    # clf_score=clf.score(x_test, y_test)
+    #
+    # diff=clf_predict-y_test
+    # MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
+    # print "Lasso MAPE: "+str(MAPE)
 
 
-#SVM
-import time
+    '''
 
-clf = svm.SVC()
-print 'svm fit:' + time.time()
-clf.fit(x,y)
-print 'svm predict:' + time.time()
-# clf_predict=clf.predict(x_test)
-# clf_score=clf.score(x_test, y_test)
-result_predict = clf.predict(x_result)
-print 'svm done'
-x_result_before['GAP'] = result_predict
-f = open('./result6.csv', 'w')
-for line in x_result_before[['district_id', 'Day', 'time_id', 'GAP']].values:
-    f.write("{0},2016-01-{1}-{2},{3}\n".format(
-        int(line[0]),
-        int(line[1]),
-        int(line[2]),
-        float(line[3])
-    ))
-f.close()
+    #LR L1
+    clf = linear_model.LogisticRegression(penalty='l1', tol=0.01)
+    clf.fit(x,y)
+    clf_predict=clf.predict(x_test)
+    clf_score=clf.score(x_test, y_test)
 
-diff=clf_predict-y_test
-MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/66/len(y_test))
-print "SVM MAPE: "+str(MAPE)
-'''
+    diff=clf_predict-y_test
+    MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
+    print "LR L1 MAPE: "+str(MAPE)
 
-#xgboost
+
+    #LR L2
+    clf = linear_model.LogisticRegression(penalty='l2', tol=0.1)
+    clf.fit(x,y)
+    clf_predict=clf.predict(x_test)
+    clf_score=clf.score(x_test, y_test)
+
+    diff=clf_predict-y_test
+    MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/len(y_test))
+    print "LR L2 MAPE: "+str(MAPE)
+
+
+    #SVM
+    import time
+
+    clf = svm.SVC()
+    print 'svm fit:' + time.time()
+    clf.fit(x,y)
+    print 'svm predict:' + time.time()
+    # clf_predict=clf.predict(x_test)
+    # clf_score=clf.score(x_test, y_test)
+    result_predict = clf.predict(x_result)
+    print 'svm done'
+    x_result_before['GAP'] = result_predict
+    f = open('./result6.csv', 'w')
+    for line in x_result_before[['district_id', 'Day', 'time_id', 'GAP']].values:
+        f.write("{0},2016-01-{1}-{2},{3}\n".format(
+            int(line[0]),
+            int(line[1]),
+            int(line[2]),
+            float(line[3])
+        ))
+    f.close()
+
+    diff=clf_predict-y_test
+    MAPE=sum(abs(diff[y_test!=0]/y_test[y_test!=0])/66/len(y_test))
+    print "SVM MAPE: "+str(MAPE)
+    '''
+
+    #xgboost
