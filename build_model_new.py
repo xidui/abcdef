@@ -22,48 +22,62 @@ base_path = './'
 
 def try_modify_result(y_predict,y_test,model_name):
     MAPE_MIN = 99999
+    modify = 0
     diff = clf_predict - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
     print model_name+" MAPE: " + str(MAPE)
-
+    
     lower = [max(i - 0.5, 1) for i in clf_predict]
     diff = lower - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
+        modify = -0.5
     print model_name+" MAPE -0.5: " + str(MAPE)
 
     lower = [max(i - 1, 1) for i in clf_predict]
     diff = lower - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
+        modify = -1
     print model_name+" MAPE -1: " + str(MAPE)
 
     lower = [max(i - 2, 1) for i in clf_predict]
     diff = lower - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
+        modify = -2
     print model_name+" MAPE -2: " + str(MAPE)
 
     upper = [max(i - 3, 1) for i in clf_predict]
     diff = upper - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
+        modify = -3
     print model_name+" MAPE -3: " + str(MAPE)
 
     upper = [max(i + 0.5, 1) for i in clf_predict]
     diff = upper - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
+        modify = + 0.5
     print model_name+" MAPE +0.5: " + str(MAPE)
 
     upper = [max(i + 1, 0) for i in clf_predict]
     diff = upper - y_test
     MAPE = sum(abs(diff[y_test != 0] / y_test[y_test != 0]) / len(y_test))
-    MAPE_MIN = min(MAPE, MAPE_MIN)
+    if MAPE<MAPE_MIN:
+        MAPE_MIN =  MAPE 
+        modify = 1
     print model_name+" MAPE +1: " + str(MAPE)
 
-    return MAPE_MIN
+    return MAPE_MIN,modify
 
 
 
@@ -80,72 +94,7 @@ def get_feathers(mother_table):
     mother_table['is_monday'] = [i==2 for i in mother_table.time_id]
     mother_table['is_friday'] = [i==4 for i in mother_table.time_id]
     return mother_table
-'''
-# 是否应该在这里先填0？？ 是否所有的列都填0？填1？
-    mother_table=mother_table.fillna(0)
 
-#用第一周的数据会好一些？
-    son_table=mother_table['start_district_hash','Order_cnt'].groupby(['start_district_hash']).mean().reset_index().rename(columns={'Order_cnt':'district_average_Order'})
-    mother_table=pd.merge(mother_table,son_table,on=['start_district_hash'],how='left')
-    son_table=mother_table['start_district_hash','Supply_cnt'].groupby(['start_district_hash']).mean().reset_index().rename(columns={'Supply_cnt':'district_average_Supply'})
-    mother_table=pd.merge(mother_table,son_table,on=['start_district_hash'],how='left')
-    son_table=mother_table['start_district_hash','Gap_cnt'].groupby(['start_district_hash']).mean().reset_index().rename(columns={'Gap_cnt':'district_average_Gap'})
-    mother_table=pd.merge(mother_table,son_table,on=['start_district_hash'],how='left')
-
-#cut-off selection   How to get best cut-off?
-    mother_table['is_high_Order']=[i >=60  for i in mother_table.district_average_Order]
-    mother_table['is_medium_Order']=[i in range(7,60)  for i in mother_table.district_average_Order]
-    mother_table['is_low_Order']=[i <7  for i in mother_table.district_average_Order]
-    mother_table['is_high_Gap']=[i >=30  for i in mother_table.district_average_Gap]
-    mother_table['is_medium_Gap']=[i in range(3,30)  for i in mother_table.district_average_Gap]
-    mother_table['is_low_Gap']=[i <3  for i in mother_table.district_average_Gap]
-'''
-
-'''
-    son_table=mother_table[mother_table.is_morning_rushhour==1]['start_district_hash','Workday','Order_cnt'].groupby(['start_district_hash','Workday'])
-    .mean().reset_index().rename(columns={'Order_cnt':'morning_rushhour_workday_mean_Order'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_morning_rushhour==1]['start_district_hash','Workday','Supply_cnt'].groupby(['start_district_hash','Workday'])
-    .mean().reset_index().rename(columns={'Supply_cnt':'morning_rushhour_workday_mean_Supply'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_morning_rushhour==1]['start_district_hash','Workday','Gap_cnt'].groupby(['start_district_hash','Workday'])
-    .mean().reset_index().rename(columns={'Gap_cnt':'morning_rushhour_workday_mean_Gap'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-
-    son_table=mother_table[mother_table.is_morning_rushhour==1]['start_district_hash','Weekday','Order_cnt'].groupby(['start_district_hash','Weekday'])
-    .mean().reset_index().rename(columns={'Order_cnt':'morning_rushhour_weekday_mean_Order'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_morning_rushhour==1]['start_district_hash','Weekday','Supply_cnt'].groupby(['start_district_hash','Weekday'])
-    .mean().reset_index().rename(columns={'Supply_cnt':'morning_rushhour_weekday_mean_Supply'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_morning_rushhour==1]['start_district_hash','Weekday','Gap_cnt'].groupby(['start_district_hash','Weekday'])
-    .mean().reset_index().rename(columns={'Gap_cnt':'morning_rushhour_weekday_mean_Gap'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    
-    son_table=mother_table[mother_table.is_noon_rushhour==1]['start_district_hash','Workday','Order_cnt'].groupby(['start_district_hash','Workday'])
-    .mean().reset_index().rename(columns={'Order_cnt':'morning_rushhour_workday_mean_Order'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_noon_rushhour==1]['start_district_hash','Workday','Supply_cnt'].groupby(['start_district_hash','Workday'])
-    .mean().reset_index().rename(columns={'Supply_cnt':'morning_rushhour_workday_mean_Supply'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_noon_rushhour==1]['start_district_hash','Workday','Gap_cnt'].groupby(['start_district_hash','Workday'])
-    .mean().reset_index().rename(columns={'Gap_cnt':'morning_rushhour_workday_mean_Gap'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-
-    son_table=mother_table[mother_table.is_noon_rushhour==1]['start_district_hash','Weekday','Order_cnt'].groupby(['start_district_hash','Weekday'])
-    .mean().reset_index().rename(columns={'Order_cnt':'morning_rushhour_weekday_mean_Order'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_noon_rushhour==1]['start_district_hash','Weekday','Supply_cnt'].groupby(['start_district_hash','Weekday'])
-    .mean().reset_index().rename(columns={'Supply_cnt':'morning_rushhour_weekday_mean_Supply'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-    son_table=mother_table[mother_table.is_noon_rushhour==1]['start_district_hash','Weekday','Gap_cnt'].groupby(['start_district_hash','Weekday'])
-    .mean().reset_index().rename(columns={'Gap_cnt':'morning_rushhour_weekday_mean_Gap'})
-    mother_table=pd.merge(mother_table,son_table,how='left')
-'''
-    
-
-
-    
     
     
 f_path=base_path +"processed_data/train_data/train_day_22.csv"
@@ -229,14 +178,14 @@ def GradientBoosting(x, y, x_test, loss='lad'):
     return clf_predict, clf
 
 
-def out_put_result(model, x_result, output_file, mape):
+def out_put_result(model, x_result, output_file, mape, modify):
     import os
     if not os.path.exists('./result'):
         os.makedirs('./result')
     y_result=model.predict(x_result)
-    y_result=[max(i+1,1) for i in y_result]
+    y_result=[max(i+modify,1) for i in y_result]
     #y_result=[max(i-3,1) for i in y_result]
-    sample=pd.read_csv("./result3.csv",header=None )
+    sample=pd.read_csv("./sample result.csv",header=None )
     sample.columns=['distinct_id','time_slot','prediction']
     sample=sample.drop('prediction',axis=1)
     output=pd.DataFrame(columns=['distinct_id','time_slot','prediction'])
@@ -300,7 +249,7 @@ if __name__ == '__main__':
             clf_predict, clf = RandomForest(x, y, x_test)
             # clf_predict.fillna(1)
             MAPE_MIN = try_modify_result(clf_predict, y_test, model_name)
-            out_put_result(clf, x_result, output_file, MAPE_MIN)
+            out_put_result(clf, x_result, output_file, MAPE_MIN,0)
 
     #weight = [40/math.log10(i+10) for i in y]
     model_name = "GradientBoosting"
@@ -327,8 +276,8 @@ if __name__ == '__main__':
                 x_final = x_result.reset_index(drop=True)
 
                 clf_predict, clf = GradientBoosting(x, y, x_test, loss=loss)
-                MAPE_MIN = try_modify_result(clf_predict, y_test, model_name)
-                out_put_result(clf, x_result, output_file, MAPE_MIN)
+                MAPE_MIN, modify = try_modify_result(clf_predict, y_test, model_name)
+                out_put_result(clf, x_result, output_file, MAPE_MIN, modify)
 
 
     # #Linear
