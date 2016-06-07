@@ -168,11 +168,17 @@ def RandomForest(x, y, x_test):
 
 
 # Gradient Boosting
-def GradientBoosting(x, y, x_test, loss='lad'):
-    params = {'n_estimators': 40, 'max_depth': 8, 'min_samples_split': 20,
+def GradientBoosting(x, y, x_test, loss, weight_type):
+    params = {'n_estimators': 40, 'max_depth': 8, 'min_samples_split': 10,
               'learning_rate': 0.01, 'loss': loss}
     clf = ensemble.GradientBoostingRegressor(**params)
-    clf.fit(x,y)
+    if weight_type == '1':
+        weight=[1 for i in y]
+    elif weight_type == '1/y':
+        weight=[1/(y+1) for i in y]
+    elif weight_type == 'log':
+        weight=[math.log(i+1,10) for i in y]
+    clf.fit(x,y,weight)
     clf_predict=clf.predict(x_test)
     clf_score=clf.score(x_test, y_test)
     return clf_predict, clf
@@ -201,6 +207,7 @@ def out_put_result(model, x_result, output_file, mape, modify):
 if __name__ == '__main__':
     # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     settings = {
+        'weight_type':['log','1/y','1'],
         'cluster': [0, 1, 2],
         'workday': [0, 1],
         'loss': ['ls', 'lad', 'huber', 'quantile'],
@@ -256,28 +263,29 @@ if __name__ == '__main__':
     for cluster in settings['cluster']:
         for workday in settings['workday']:
             for loss in settings['loss']:
-                clust = 'is_cluster_' + str(cluster)
-                train = train_all[train_all.Workday == workday]
-                train = train[train[clust] == 1]
-                test = test_all[test_all.Workday == workday]
-                test = test[test[clust] == 1]
-                predict=predict_all[predict_all.Workday == workday]
-                predict=predict[predict[clust] == 1]
-                output_file="./result/{0}_{1}_{2}_{3}.csv".format(model_name, cluster, workday, loss)
-
-                y = train.Gap_cnt.fillna(1)
-                #y=[math.log(i+1,10) for i in y]
-                y_test = test.Gap_cnt.fillna(0)
-                #y_test=[math.log(i+1,10) for i in y_test]
-                x = train[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
-                x_test = test[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
-                x_result = predict[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
-                x_result = x_result.loc[[i in [46,58,70,82,94,106,118,130,142] for i in x_result.time_id],:]
-                x_final = x_result.reset_index(drop=True)
-
-                clf_predict, clf = GradientBoosting(x, y, x_test, loss=loss)
-                MAPE_MIN, modify = try_modify_result(clf_predict, y_test, model_name)
-                out_put_result(clf, x_result, output_file, MAPE_MIN, modify)
+                for weight_type in settings['weight_type']: 
+                    clust = 'is_cluster_' + str(cluster)
+                    train = train_all[train_all.Workday == workday]
+                    train = train[train[clust] == 1]
+                    test = test_all[test_all.Workday == workday]
+                    test = test[test[clust] == 1]
+                    predict=predict_all[predict_all.Workday == workday]
+                    predict=predict[predict[clust] == 1]
+                    output_file="./result/{0}_{1}_{2}_{3}.csv".format(model_name, cluster, workday, loss)
+    
+                    y = train.Gap_cnt.fillna(1)
+                    #y=[math.log(i+1,10) for i in y]
+                    y_test = test.Gap_cnt.fillna(0)
+                    #y_test=[math.log(i+1,10) for i in y_test]
+                    x = train[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+                    x_test = test[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+                    x_result = predict[feasible_columns].drop(columns_to_drop, axis=1).fillna(0)
+                    x_result = x_result.loc[[i in [46,58,70,82,94,106,118,130,142] for i in x_result.time_id],:]
+                    x_final = x_result.reset_index(drop=True)
+    
+                    clf_predict, clf = GradientBoosting(x, y, x_test, loss, weight_type)
+                    MAPE_MIN, modify = try_modify_result(clf_predict, y_test, model_name)
+                    out_put_result(clf, x_result, output_file, MAPE_MIN, modify)
 
 
     # #Linear
