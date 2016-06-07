@@ -184,7 +184,7 @@ def GradientBoosting(x, y, x_test, loss, weight_type):
     return clf_predict, clf
 
 
-def out_put_result(model, x_result, output_file, mape, modify):
+def out_put_result(model, x_result, output_file, mape, modify, weight_type):
     import os
     if not os.path.exists('./result'):
         os.makedirs('./result')
@@ -199,7 +199,7 @@ def out_put_result(model, x_result, output_file, mape, modify):
     output.time_slot=get_timeslot(x_final.Day,x_final.time_id)
     output.prediction=y_result
     final_output=pd.merge(sample,output,on=['distinct_id','time_slot'],how='left')
-    final_output.to_csv(output_file + '.' + str(len(output)) + '.' + str(mape), index=False, header=False)
+    final_output.to_csv(output_file + '.' + str(len(output)) + '.' + str(mape)+'.'+weight_type, index=False, header=False)
     print len(output)
     print len(final_output)
 
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     
                     clf_predict, clf = GradientBoosting(x, y, x_test, loss, weight_type)
                     MAPE_MIN, modify = try_modify_result(clf_predict, y_test, model_name)
-                    out_put_result(clf, x_result, output_file, MAPE_MIN, modify)
+                    out_put_result(clf, x_result, output_file, MAPE_MIN, modify,weight_type)
 
 
     # #Linear
